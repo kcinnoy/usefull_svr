@@ -1,6 +1,19 @@
 import User from '../models/user';
 import { hashPassword, comparePassword } from '../utils/auth';
 import jwt from 'jsonwebtoken';
+import  AWS from 'aws-sdk';
+
+
+const awsConfig = {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION,
+    apiVersion: process.env.AWS_ACCESS_KEY_ID
+}
+
+
+const SES = new AWS.SES(awsConfig);
+
 
 export const register = async (req, res) => {
     try {
@@ -81,9 +94,49 @@ export const currentUser = async (req, res) => {
     try {
         const user = await User.findById(req.user._id).select('-password').exec();
         console.log('CURRENT_USER', user);
-        return res.json(user);
+        return res.json({ok: true});
     } catch (err) {
         console.log(err)
     }
 };
   
+
+export const sendTestEmail = async (req, res) => { 
+    // console.log('send email using SES');
+    // res.json({ok: true})
+    const params = {
+        Source: process.env.EMAIL_FROM,
+        Destination: {
+            ToAddresses: [process.env.EMAIL_FROM]
+        },
+        ReplyToAddresses: [process.env.EMAIL_FROM],
+        Message: {
+            Body: {
+                Html: {
+                    Charset: 'UTF-8',
+                    Data: `
+                        <html>
+                            <h1>Reset password link</h1>
+                            <p>Please use the following link to reset your email</p>
+                        </html>
+                    `
+                },
+            },
+        Subject: {
+            Charset: 'UTF-8',
+            Data: ` Subject header placeholder`
+
+        },
+    },
+    };
+    const emailSent = SES.sendEmail(params).promise();
+
+    emailSent
+        .then((data) => {
+            console.log(data);
+            res.json({ok: true});
+        })
+        .catch((err) => {
+            console.log(err);
+        });
+};
