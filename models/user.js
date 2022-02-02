@@ -27,7 +27,7 @@ const userSchema = new Schema({
     role: {
         type: [String],
         default: ["Subscriber"],
-        enum: ["Subscriber", "Instructer", "Admin"],
+        enum: ["Subscriber", "Instructer", "Admin", "Service Owner"],
     },
     stripe_account_id: "",
     stripe_seller:{},
@@ -35,11 +35,9 @@ const userSchema = new Schema({
     passwordResetCode: {
         data: String,
         default: ''
-    }
     },
+},
     {timestamps: true}
-
-
 );
 
 export default mongoose.model('user',userSchema)
