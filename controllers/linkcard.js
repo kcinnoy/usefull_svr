@@ -3,6 +3,9 @@ import { hashPassword, comparePassword } from '../utils/auth';
 import jwt from 'jsonwebtoken';
 import AWS from 'aws-sdk';
 import { nanoid } from 'nanoid';
+import Linkcard from '../models/linkcard';
+import slugify from 'slugify';
+import {readFileSync} from 'fs';
 
 const awsConfig = {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -46,15 +49,13 @@ export const uploadImage = async (req, res) => {
     }
 };
 
-
-
 export const removeImage = async (req, res) => {
-    try { 
+    try {
         const { image } = req.body;
-         // image params
-         const params = {
+        // image params
+        const params = {
             Bucket: image.Bucket,
-            Key: image.Key,
+            Key: image.Key
         };
         //send remove request
         S3.deleteObject(params, (err, data) => {
@@ -62,9 +63,73 @@ export const removeImage = async (req, res) => {
                 console.log(err);
                 res.sendStatus(400);
             }
-            res.send({ok: true});
+            res.send({ ok: true });
         });
+    } catch (err) {
+        console.log(err);
+    }
+};
+
+export const createLinkcard = async (req, res) => {
+    // console.log("CREATE LINKCARD", req.body);
+    // return;
+    try {
+        const alreadyExist = await Linkcard.findOne({
+            slug: slugify(req.body.name.toLowerCase())
+        });
+        if (alreadyExist) return res.status(400).send('Title is taken');
+
+        const linkcard = await new Linkcard({
+            slug: slugify(req.body.name),
+            account: req.user._id,
+            ...req.body
+        }).save();
+
+        res.json(linkcard);
+    } catch (err) {
+        console.log(err);
+        return res.status(400).send('Linkcard create failed. Try again.');
+    }
+};
+
+export const read = async (req, res) => {
+    try {
+        const linkcard = await Linkcard.findOne({ slug: req.params.slug })
+            .populate('account', '_id name')
+            .exec();
+        res.json(linkcard);
+    } catch (err) {
+        console.log(err);
+        return res.status(400).send('Linkcard create failed. Try again.');
+    }
+};
+
+export const uploadVideo = async (req, res) => {
+    try{
+        const {video} =  req.files;
+        if (!video) return res.status(400).send('No video');
+        //console.log(video);
+
+        //video params
+        const params = {
+            Bucket: 'usefull-bucket',
+            Key: `${nanoid()}.${video.type.split('/')[1]}`,
+            Body: readFileSync(video.path),
+            ACL: 'public-read',
+            //ContentEncoding: 'base64',
+            ContentType: video.type
+        };
+
+        S3.upload(params, (err, data) => {
+            if (err) {
+                console.log(err);
+                res.sendStatus(400);
+            }
+            console.log(data)
+            res.send(data)
+        });
+
     } catch (err) {
         console.log(err)
     }
-};
+}

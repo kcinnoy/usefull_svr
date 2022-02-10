@@ -1,4 +1,5 @@
 import User from '../models/user';
+import Linkcard from '../models/linkcard';
 import queryString from 'query-string';
 import { isBuffer } from 'util';
 //import stripe from 'stripe';
@@ -81,9 +82,19 @@ export const currentAccount = async  (req,res) => {
         if (!user.role.includes('Service Owner')) {
             return res.status(403)
         } else {
-            res.json({ok: trye});
+            res.json({ok: true});
         }
     } catch (err) {
         console.log(err)
     }
 }
+
+export const accountLinkcards = async  (req,res) => {
+    try { 
+        const linkcards = await Linkcard.find({account: req.user._id}).sort({createdAt: -1}).exec();
+        res.json(linkcards)
+        console.log(linkcards)
+    } catch (err) {
+        console.log(err)
+    }
+};

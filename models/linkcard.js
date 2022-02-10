@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const { ObjectId } = mongoose.Schema;
 
-const showcaseSchema = new Schema(
+const showcaseSchema = new mongoose.Schema(
     {
     title: {
         type: String,
@@ -29,7 +29,7 @@ const showcaseSchema = new Schema(
 );
 
 
-const linkcardSchema = new Schema({
+const linkcardSchema = new mongoose.Schema({
     name: {
         type: String,
         trim: true,
