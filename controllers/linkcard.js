@@ -5,7 +5,7 @@ import AWS from 'aws-sdk';
 import { nanoid } from 'nanoid';
 import Linkcard from '../models/linkcard';
 import slugify from 'slugify';
-import {readFileSync} from 'fs';
+import { readFileSync } from 'fs';
 
 const awsConfig = {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -105,14 +105,14 @@ export const read = async (req, res) => {
 };
 
 export const uploadVideo = async (req, res) => {
-    try{
+    try {
         //console.log('req.user.id', req.user._id);
         //console.log('req.params.accountId', req.params.accountId);
-        if(req.user._id != req.params.accountId) {
+        if (req.user._id != req.params.accountId) {
             return res.status(400).send('Unauthorized');
         }
 
-        const {video} =  req.files;
+        const { video } = req.files;
         if (!video) return res.status(400).send('No video');
         //console.log(video);
 
@@ -131,24 +131,21 @@ export const uploadVideo = async (req, res) => {
                 console.log(err);
                 res.sendStatus(400);
             }
-            console.log(data)
-            res.send(data)
+            console.log(data);
+            res.send(data);
         });
-
     } catch (err) {
-        console.log(err)
+        console.log(err);
     }
-}
-
+};
 
 export const removeVideo = async (req, res) => {
-    try{
-        
-        if(req.user._id != req.params.accountId) {
+    try {
+        if (req.user._id != req.params.accountId) {
             return res.status(400).send('Unauthorized');
         }
 
-        const {Bucket, Key} =  req.body;
+        const { Bucket, Key } = req.body;
         // console.log(video);
         // return;
         //if (!video) return res.status(400).send('No video');
@@ -157,7 +154,7 @@ export const removeVideo = async (req, res) => {
         //video params
         const params = {
             Bucket,
-            Key,
+            Key
         };
 
         S3.deleteObject(params, (err, data) => {
@@ -165,11 +162,35 @@ export const removeVideo = async (req, res) => {
                 console.log(err);
                 res.sendStatus(400);
             }
-            console.log(data)
-            res.send({ok: true})
+            console.log(data);
+            res.send({ ok: true });
         });
-
     } catch (err) {
-        console.log(err)
+        console.log(err);
     }
-}
+};
+
+export const addShowcase = async (req, res) => {
+    try {
+        const { slug, accountId } = req.params;
+        const { title, content, video } = req.body;
+
+        if (req.user._id != accountId) {
+            return res.status(400).send('Unauthorized');
+        }
+
+        const updated = await Linkcard.findOneAndUpdate(
+            { slug },
+            {
+                $push: { showcases: { title, content, video, slug: slugify(title) } }
+            },
+            { new: true }
+        )
+            .populate("account", "_id name")
+            .exec();
+        res.json(updated);
+    } catch (err) {
+        console.log(err);
+        return res.status(400).send('Add showcase failed');
+    }
+};
