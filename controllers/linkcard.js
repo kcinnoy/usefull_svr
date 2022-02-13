@@ -106,6 +106,12 @@ export const read = async (req, res) => {
 
 export const uploadVideo = async (req, res) => {
     try{
+        //console.log('req.user.id', req.user._id);
+        //console.log('req.params.accountId', req.params.accountId);
+        if(req.user._id != req.params.accountId) {
+            return res.status(400).send('Unauthorized');
+        }
+
         const {video} =  req.files;
         if (!video) return res.status(400).send('No video');
         //console.log(video);
@@ -127,6 +133,40 @@ export const uploadVideo = async (req, res) => {
             }
             console.log(data)
             res.send(data)
+        });
+
+    } catch (err) {
+        console.log(err)
+    }
+}
+
+
+export const removeVideo = async (req, res) => {
+    try{
+        
+        if(req.user._id != req.params.accountId) {
+            return res.status(400).send('Unauthorized');
+        }
+
+        const {Bucket, Key} =  req.body;
+        // console.log(video);
+        // return;
+        //if (!video) return res.status(400).send('No video');
+        //console.log(video);
+
+        //video params
+        const params = {
+            Bucket,
+            Key,
+        };
+
+        S3.deleteObject(params, (err, data) => {
+            if (err) {
+                console.log(err);
+                res.sendStatus(400);
+            }
+            console.log(data)
+            res.send({ok: true})
         });
 
     } catch (err) {

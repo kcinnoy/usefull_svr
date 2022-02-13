@@ -7,13 +7,14 @@ const router = express.Router();
 import { requireSignin, isServiceOwner} from '../middlewares';
 
 // controllers
-import {uploadImage, removeImage, createLinkcard, read, uploadVideo} from '../controllers/linkcard'
+import {uploadImage, removeImage, createLinkcard, read, uploadVideo, removeVideo} from '../controllers/linkcard'
 
 router.post('/linkcard/upload-image', uploadImage);
 router.post('/linkcard/remove-image', removeImage);
 // course
 router.post('/linkcard', requireSignin, isServiceOwner, createLinkcard);
 router.get('/linkcard/:slug', read);
-router.post('/linkcard/video-upload', requireSignin, formidable(), uploadVideo);
+router.post('/linkcard/video-upload/:accountId', requireSignin, formidable(), uploadVideo);
+router.post('/linkcard/video-remove/:accountId', requireSignin, removeVideo);
 
 module.exports = router;
