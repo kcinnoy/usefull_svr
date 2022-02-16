@@ -194,3 +194,28 @@ export const addShowcase = async (req, res) => {
         return res.status(400).send('Add showcase failed');
     }
 };
+
+
+export const editLinkcard = async (req, res) => {
+    try { 
+        const {slug} = req.params;
+        //console.log(slug)
+
+        const linkcard = await Linkcard.findOne({slug}).exec();
+        console.log('course found =>', linkcard);
+
+        if(req.user._id != linkcard.account) {
+            return res.status(400).send('Unauthorized');
+        }
+
+        const updated = await Linkcard.findOneAndUpdate({slug}, req.body, {
+            new: true,
+        }).exec();
+
+        res.json(updated);
+
+    } catch (err) {
+        console.log(err);
+        return res.status(400).send('Edit Linkcard failed');
+    }
+};
