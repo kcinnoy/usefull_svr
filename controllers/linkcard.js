@@ -6,6 +6,9 @@ import { nanoid } from 'nanoid';
 import Linkcard from '../models/linkcard';
 import slugify from 'slugify';
 import { readFileSync } from 'fs';
+const stripe = require("stripe")(process.env.STRIPE_SECRET);
+
+
 
 const awsConfig = {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -15,6 +18,18 @@ const awsConfig = {
 };
 
 const S3 = new AWS.S3(awsConfig);
+
+export const linkcards = async (req, res) => {
+    try { 
+        const allLinkcards = await Linkcard.find({published: true})
+        .populate('account','_id name').exec();
+        res.json(allLinkcards);  
+
+    } catch (err) {
+        console.log(err);
+        return res.status(400).send('Linkcard create failed. Try again.');
+    }
+};
 
 export const uploadImage = async (req, res) => {
     try {
@@ -217,5 +232,112 @@ export const editLinkcard = async (req, res) => {
     } catch (err) {
         console.log(err);
         return res.status(400).send('Edit Linkcard failed');
+    }
+};
+
+
+export const removeShowcase = async (req, res) => {
+    try { 
+    
+        const {slug, showcaseId} = req.params;
+        const linkcard = await Linkcard.findOne({slug}).exec();
+        console.log('course found =>', linkcard);
+
+        //check if authorized to delete 
+        if(req.user._id != linkcard.account) {
+            return res.status(400).send('Unauthorized');
+        }
+
+        const removed = await Linkcard.findByIdAndUpdate(linkcard._id, {
+            $pull: {showcases: {_id: showcaseId}},
+        }).exec();
+
+        res.json({ok: true});
+
+    } catch (err) {
+        console.log(err);
+        return res.status(400).send('Edit Linkcard failed');    
+    }
+};
+
+
+export const updateShowcase = async (req, res) => {
+    try {  
+        const {slug } = req.params;
+        const {_id, title, content, video, free_preview} = req.body;
+        const linkcard = await Linkcard.findOne({slug}).select('account').exec();
+
+        if(linkcard.account._id != req.user._id) {
+            return res.status(400).send('Unauthorized');
+        }
+
+        const updatedShowcase = await Linkcard.updateOne(
+            {'showcases._id': _id}, 
+            {
+                $set:{
+                    'showcases.$.title': title,
+                    'showcases.$.content': content,
+                    'showcases.$.video': video,
+                    'showcases.$.free_preview': free_preview,
+                },    
+            },
+            {new: true}
+        ).exec();
+
+        console.log('update showcase: ', updatedShowcase)
+        res.json({ok: true});
+    } catch (err) {
+        console.log(err);
+        return res.status(400).send('Edit Linkcard failed');    
+    }
+};
+
+
+export const publishLinkcard = async (req, res) => {
+    try {
+        const { linkcardId } = req.params;
+        const linkcard = await Linkcard.findById(linkcardId).select('account').exec();
+
+        //authorization
+        if(linkcard.account._id != req.user._id) {
+            return res.status(400).send('Unauthorized');
+        }
+
+         //update linkcard and send response to front end
+         const updatedLinkcard = await Linkcard.findByIdAndUpdate(
+            linkcardId,
+            {published: true},
+            {new: true}
+        ).exec();
+        res.json(updatedLinkcard) //updated linkcard after publish change 
+
+    } catch (err) {
+        console.log(err);
+        return res.status(400).send('Publsih Linkcard failed');    
+    }
+};
+
+
+export const unpublishLinkcard = async (req, res) => {
+    try {  
+        const { linkcardId } = req.params;
+        const linkcard = await Linkcard.findById(linkcardId).select('account').exec();
+
+         //authorization
+         if(linkcard.account._id != req.user._id) {
+            return res.status(400).send('Unauthorized');
+        }
+
+        //update linkcard and send response to front end
+        const updatedLinkcard = await Linkcard.findByIdAndUpdate(
+            linkcardId,
+            {published: false},
+            {new: true}
+        ).exec();
+        res.json(updatedLinkcard) //updated linkcard after publish change 
+
+    } catch (err) {
+        console.log(err);
+        return res.status(400).send('Unpublsih Linkcard failed');    
     }
 };
