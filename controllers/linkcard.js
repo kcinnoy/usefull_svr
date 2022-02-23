@@ -24,7 +24,6 @@ export const linkcards = async (req, res) => {
         const allLinkcards = await Linkcard.find({published: true})
         .populate('account','_id name').exec();
         res.json(allLinkcards);  
-
     } catch (err) {
         console.log(err);
         return res.status(400).send('Linkcard create failed. Try again.');
